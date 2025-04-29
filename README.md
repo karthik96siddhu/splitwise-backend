@@ -8,3 +8,7 @@
 -  if you want to empty tables run "alembic downgrade base"
 - NOTE models don't rollback automatically. We have to change manually in models files. 
 - "Migration file controls DB, not code!"
+
+### If you want to clear db and versions follow below command
+- alembic revision --autogenerate -m "Initial tables setup"
+- alembic upgrade head
