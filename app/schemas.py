@@ -1,4 +1,5 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
+from datetime import datetime
 
 class UserBase(BaseModel):
     name: str
@@ -40,3 +41,30 @@ class UserSimple(BaseModel):
 
 class TripDetail(TripResponse):
     members: list[UserSimple] = []
+
+class ExpenseCreate(BaseModel):
+    trip_id: int
+    title: str
+    amount: float
+    payer_id: int
+
+class ExpenseResponse(BaseModel):
+    id: int
+    trip_id: int
+    title: str
+    amount: float
+    payer_id: int
+    created_at: datetime
+
+    class Config:
+        orm_mode: True
+
+class Settlement(BaseModel):
+    from_user: str = Field(..., alias="from")
+    to_user: str = Field(..., alias="to")
+    amount: float
+
+    class Config:
+        allow_population_by_field_name = True
+
+

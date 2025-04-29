@@ -27,7 +27,7 @@ def create_trip(db: Session, trip: schemas.TripCreate, user_id: int):
 def add_memebr_to_trip(db: Session, trip_id: int, user_id: int):
     trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
     user = db.query(models.User).filter(models.User.id == user_id).first()
-
+    
     if not trip or not user:
         return None
     
