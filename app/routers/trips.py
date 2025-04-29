@@ -23,7 +23,7 @@ def create_trip(trip: schemas.TripCreate, db: Session = Depends(get_db), current
 
 @router.post("/{trip_id}/add-member/{user_id}")
 def add_member(trip_id: int, user_id: int, db: Session = Depends(get_db), current_user= Depends(get_current_user)):
-    trip  = crud.add_memebr_to_trip(db, trip_id, user_id)
+    trip  = crud.add_member_to_trip(db, trip_id, user_id)
     if not trip:
         raise HTTPException(status_code=404, detail="Trip or User not found")
     return {"message": "User added to trip successfully"}
@@ -39,5 +39,14 @@ def get_settlement(trip_id: int, db: Session = Depends(get_db), current_user: mo
     if current_user.id not in user_ids:
         raise HTTPException(status_code=403, detail="Not authorized to view this trip")
     return calculate_settlement(trip_id, db)
+
+@router.post("/{trip_id}/members", response_model=schemas.UserResponse)
+def add_trip_members(
+    trip_id: int,
+    request: schemas.AddMemberRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    pass
     
 
