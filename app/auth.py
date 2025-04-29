@@ -7,13 +7,9 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import User
 from app.crud import get_user_by_email
+from app.config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
-
-# JWT settings
-SECRET_KEY = 'you never walk alone #ynwa Liverpool'
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRY_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -53,8 +49,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     else:
         expiry = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({'exp': expiry})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
 def decode_token(token:str):
-    return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
 
