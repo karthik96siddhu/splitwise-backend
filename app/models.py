@@ -44,6 +44,7 @@ class Expense(Base):
     amount = Column(Float, nullable=False)
     # ondelete="SET NULL". It means if user is deleted, there expenses stays but payer_id becomes NULL.
     payer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    note = Column(String, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
