@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 
@@ -55,6 +56,7 @@ class ExpenseResponse(BaseModel):
     amount: float
     payer_id: int
     created_at: datetime
+    note: Optional[str] = None
 
     class Config:
         orm_mode: True
@@ -67,8 +69,12 @@ class Settlement(BaseModel):
     class Config:
         allow_population_by_field_name = True
 
-class AddMemberRequest(BaseModel):
-    user_id: int
+class AddMemberByEmailRequest(BaseModel):
+    email: str
+    
+class RemoveMemeberByEmailRequest(BaseModel):
+    email: str
 
-
+class UpdateExpenseNote(BaseModel):
+    note: str
 

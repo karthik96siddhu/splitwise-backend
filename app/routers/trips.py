@@ -40,13 +40,57 @@ def get_settlement(trip_id: int, db: Session = Depends(get_db), current_user: mo
         raise HTTPException(status_code=403, detail="Not authorized to view this trip")
     return calculate_settlement(trip_id, db)
 
-@router.post("/{trip_id}/members", response_model=schemas.UserResponse)
-def add_trip_members(
+@router.post("/{trip_id}/invite", response_model=schemas.UserResponse)
+def invite_trip_member_by_email(
     trip_id: int,
-    request: schemas.AddMemberRequest,
+    request: schemas.AddMemberByEmailRequest,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    pass
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    if trip.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only Trip creator can add members")
+    
+    user_to_add = db.query(models.User).filter(models.User.email == request.email).first()
+    if not user_to_add:
+        raise HTTPException(status_code=404, detail="No user found with this email")
+    if user_to_add in trip.members:
+        raise HTTPException(status_code=400, detail="User already in trip")
+    trip.members.append(user_to_add)
+    db.commit()
+    db.refresh(trip)
+    return user_to_add
+
+@router.delete("/trips/members", response_model=schemas.UserResponse)
+def remove_trip_member(
+    trip_id: int,
+    request: schemas.RemoveMemeberByEmailRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)):
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    if trip.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only Trip creator can remove members")
+    user_to_remove = db.query(models.User).filter(models.User.email == request.email).first()
+    if not user_to_remove:
+        raise HTTPException(status_code=404, detail="No user found with this email")
+    if user_to_remove not in trip.members:
+        raise HTTPException(status_code=400, detail="User not in trip")
+    
+    # check for existing expenses by this user in this trip
+    has_expenses = db.query(models.Expense).filter(
+        models.Expense.trip_id == trip.id,
+        models.Expense.payer_id == user_to_remove.id
+    ).first()
+    if has_expenses:
+        raise HTTPException(status_code=400, detail="User has expenses in this trip, cannot remove")
+    trip.members.remove(user_to_remove)
+    db.commit()
+    db.refresh(trip)
+    return user_to_remove
     
 

@@ -40,38 +40,22 @@ def get_expenses_for_a_trip(trip_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No expenses found for this trip")
     return expenses
 
-@router.get("/trip/{trip_id}/split")
-def split_expenses(trip_id: int, db: Session = Depends(get_db)):
-    expenses = db.query(models.Expense).filter(models.Expense.trip_id == trip_id).all()
-    if not expenses:
-        raise HTTPException(status_code=404, detail="No expenses found for this trip")
+@router.patch("/{expense_id}/note", response_model=schemas.ExpenseResponse)
+def update_expense_note(
+    expense_id: int,
+    request: schemas.UpdateExpenseNote,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    expense = db.query(models.Expense).filter(models.Expense.id == expense_id).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
     
-    # 1. Calcultae total amount
-    total_amount = sum(exp.amount for exp in expenses)
-
-    #2. Find unique users who paid.
-    user_ids = set(exp.payer_id for exp in expenses)
-    num_users = len(user_ids)
-
-    if num_users == 0:
-        raise HTTPException(status_code=400, details="No particpants to split among")
+    # check if current user is the payer
+    if expense.payer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You are not authorized to update this expense")
     
-    # 3. Equal shares
-    share_per_user = total_amount/num_users
-
-    # 4. Calculate amount paid by each user
-    paid_by_user = {}
-    for exp in expenses:
-        paid_by_user[exp.payer_id] = paid_by_user.get(exp.payer_id, 0) + exp.amount
-
-    # 5. Calculate net balance
-    balances = {}
-    for user_id in user_ids:
-        paid = paid_by_user.get(user_id, 0)
-        balances[user_id] = round(paid - share_per_user, 2)
-    
-    return {
-        "total_amount": total_amount,
-        "share_per_user": round(share_per_user, 2),
-        "balances": balances
-    }
+    expense.note = request.note
+    db.commit()
+    db.refresh(expense)
+    return expense

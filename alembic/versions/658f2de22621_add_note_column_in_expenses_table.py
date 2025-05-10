@@ -1,8 +1,8 @@
 """add note column in expenses table
 
-Revision ID: 7c9635e1e689
+Revision ID: 658f2de22621
 Revises: f790da638d8f
-Create Date: 2025-04-30 10:34:59.279299
+Create Date: 2025-04-30 10:53:41.187088
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '7c9635e1e689'
+revision: str = '658f2de22621'
 down_revision: Union[str, None] = 'f790da638d8f'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
