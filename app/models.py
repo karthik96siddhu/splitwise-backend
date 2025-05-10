@@ -6,8 +6,8 @@ from sqlalchemy.sql import func
 trip_members = Table(
     "trip_members",
     Base.metadata,
-    Column("trip_id",Integer, ForeignKey("trips.id"), primary_key=True),
-    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True)
+    Column("trip_id",Integer, ForeignKey("trips.id", ondelete="CASCADE"), primary_key=True),
+    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
 )
 
 

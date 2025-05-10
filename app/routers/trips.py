@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from app import schemas, crud
 from app.auth import get_current_user
@@ -92,5 +92,20 @@ def remove_trip_member(
     db.commit()
     db.refresh(trip)
     return user_to_remove
-    
 
+@router.delete("/{trip_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_trip(
+    trip_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    if trip.creator_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only Trip creator can delete the trip")
+    
+    db.delete(trip)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
