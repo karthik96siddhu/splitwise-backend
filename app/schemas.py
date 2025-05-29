@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 
@@ -77,4 +77,16 @@ class RemoveMemeberByEmailRequest(BaseModel):
 
 class UpdateExpenseNote(BaseModel):
     note: str
+    
+class TripUserSummary(BaseModel):
+    user: str
+    paid: float
+    share: float
+    balance: float
+
+class TripSummaryResponse(BaseModel):
+    trip_id: int
+    trip_name: str
+    total_expenses: float
+    summary: List[TripUserSummary]
 

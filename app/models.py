@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Table, DateTime, Flo
 from .database import Base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from datetime import datetime
 
 trip_members = Table(
     "trip_members",
@@ -30,6 +31,7 @@ class Trip(Base):
     creator_id = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+    settled_at = Column(DateTime(timezone=True), nullable=True)
 
     creator = relationship("User", back_populates="trips")
     members = relationship("User", secondary=trip_members, back_populates="joined_trips")

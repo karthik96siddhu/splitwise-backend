@@ -59,3 +59,30 @@ def update_expense_note(
     db.commit()
     db.refresh(expense)
     return expense
+
+@router.delete("/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_expense(
+    trip_id: int,
+    expense_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # prevent deletion if multiple members are involved
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if trip.settled_at is not None:
+        raise HTTPException(status_code=400, detail="Cannot delete expense after settlement. Please reset or recalculate settlement first."
+    )
+    
+    expense =db.query(models.Expense).filter(models.Expense.id == expense_id).first()
+    
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    # check if current user is the payer
+    if expense.payer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You are not authorized to delete this expense")
+    
+    db.delete(expense)
+    db.commit()
+    return 
+    

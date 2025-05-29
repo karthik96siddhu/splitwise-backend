@@ -1,8 +1,18 @@
 from sqlalchemy.orm import Session
 from app import models
+from datetime import datetime
+from fastapi import HTTPException, status
 
 def calculate_settlement(trip_id: int, db: Session):
     from collections import defaultdict
+
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
+    
+    # set settled timestamp
+    trip.settled_at = datetime.now()
+    db.commit()
 
     # Get expenses
     expenses = db.query(models.Expense).filter(models.Expense.trip_id == trip_id).all()

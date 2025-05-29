@@ -109,3 +109,52 @@ def delete_trip(
     db.delete(trip)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/{trip_id}/summary", response_model=schemas.TripSummaryResponse)
+def trip_summary(
+    trip_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    trip  = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    # Get all expenses
+    expenses = db.query(models.Expense).filter(models.Expense.trip_id == trip_id).all()
+    total_expense = sum(exp.amount for exp in expenses)
+    
+    if not expenses:
+        raise HTTPException(status_code=404, detail="No expenses found for this trip")
+    
+    # Get trip members
+    members = trip.members
+    
+    # calculate paid per user
+    paid_by_user = {member.id: 0.0 for member in members}
+    for exp in expenses:
+        if exp.payer_id in paid_by_user:
+            paid_by_user[exp.payer_id] += exp.amount
+    
+    # Equal share
+    share_per_user = total_expense / len(members) if members else 0
+    
+    summary = []
+    for member in members:
+        paid = round(paid_by_user[member.id],2)
+        share = round(share_per_user, 2)
+        balance = round(paid - share, 2)
+        summary.append(schemas.TripUserSummary(
+            user=member.name,
+            paid=paid,
+            share=share,
+            balance=balance
+        ))
+    
+    return schemas.TripSummaryResponse(
+        trip_id=trip.id,
+        trip_name=trip.name,
+        total_expenses=round(total_expense, 2),
+        summary=summary
+    )
