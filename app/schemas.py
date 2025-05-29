@@ -89,4 +89,12 @@ class TripSummaryResponse(BaseModel):
     trip_name: str
     total_expenses: float
     summary: List[TripUserSummary]
+    
+class ExpenseUpdate(BaseModel):
+    title: Optional[str]
+    amount: Optional[float]
+    payer_id: Optional[int]
+    note: Optional[str] = None
+    
+
 

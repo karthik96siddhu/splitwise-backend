@@ -1,8 +1,12 @@
 from fastapi import APIRouter, Depends, status, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app import models, schemas
 from app.auth import get_current_user
 from app.database import get_db
+import csv
+from io import StringIO
+from fastapi.responses import StreamingResponse
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 
@@ -85,4 +89,68 @@ def delete_expense(
     db.delete(expense)
     db.commit()
     return 
+
+@router.put("/{expense_id}", response_model=schemas.ExpenseResponse)
+def update_expense(
+    expense_id: int,
+    expense_update: schemas.ExpenseUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    expense = db.query(models.Expense).filter(models.Expense.id == expense_id).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
     
+    # ensure the current user is the payer
+    if expense.payer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You are not authorized to update this expense")
+    
+    # Optional : Add trip access check if needed
+    
+    for key, value in expense_update.dict(exclude_unset=True).items():
+        setattr(expense, key, value)
+        
+    db.commit()
+    db.refresh(expense)
+    return expense
+
+# export expense in csv format
+@router.get("/trips/{trip_id}/expenses/breakdown/export")
+def export_expense_breakdown_csv(
+    trip_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    if current_user not in trip.members and current_user.id != trip.creator_id:
+        raise HTTPException(status_code=403, detail="You are not authorized to view this trip's expenses")
+    
+    results = (
+        db.query(
+            models.User.name.label("user_name"),
+            func.count(models.Expense.id).label("number_of_expenses"),
+            func.sum(models.Expense.amount).label("total_amount"),
+        )
+        .join(models.Expense, models.User.id == models.Expense.payer_id) 
+        .filter(models.Expense.trip_id == trip_id)
+        .group_by(models.User.id)
+        .all()
+    )
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['User Name', 'No. of Expenses', 'Total Amount Spent'])
+    
+    for row in results:
+        writer.writerow([row.user_name, row.number_of_expenses, float(row.total_amount or 0)])
+    
+    output.seek(0)
+    
+    filename = f"trip_{trip_id}_expenses_breakdown.csv"
+    return StreamingResponse(
+        output,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
